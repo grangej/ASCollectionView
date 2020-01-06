@@ -99,13 +99,14 @@ public struct ASCollectionView<SectionID: Hashable>: UIViewControllerRepresentab
 	 - Parameters:
 	 	- sections: An array of sections (ASCollectionViewSection)
 	 */
-	@inlinable public init(selectedItems: Binding<[SectionID: IndexSet]>? = nil, sections: [Section])
+    @inlinable public init(selectedItems: Binding<[SectionID: IndexSet]>? = nil, selectedItem: Binding<IndexPath?>? = nil, sections: [Section])
 	{
 		self.selectedItems = selectedItems
+        self.selectedItem = selectedItem
 		self.sections = sections
 	}
 
-	@inlinable public init(selectedItems: Binding<[SectionID: IndexSet]>? = nil, @SectionArrayBuilder <SectionID> sectionBuilder: () -> [Section])
+	@inlinable public init(selectedItems: Binding<[SectionID: IndexSet]>? = nil, selectedItem: Binding<IndexPath?>? = nil, @SectionArrayBuilder <SectionID> sectionBuilder: () -> [Section])
 	{
 		self.selectedItems = selectedItems
 		sections = sectionBuilder()
@@ -208,9 +209,9 @@ public struct ASCollectionView<SectionID: Hashable>: UIViewControllerRepresentab
 		}
 
 		@discardableResult
-		func configureHostingController(forItemID itemID: ASCollectionViewItemUniqueID, isSelected: Bool) -> ASHostingControllerProtocol?
+        func configureHostingController(forItemID itemID: ASCollectionViewItemUniqueID, isSelected: Bool, indexPath: IndexPath) -> ASHostingControllerProtocol?
 		{
-			let controller = section(forItemID: itemID)?.dataSource.configureHostingController(reusingController: hostingControllerCache[itemID], forItemID: itemID, isSelected: isSelected)
+            let controller = section(forItemID: itemID)?.dataSource.configureHostingController(reusingController: hostingControllerCache[itemID], forItemID: itemID, isSelected: isSelected, indexPath: indexPath)
 			hostingControllerCache[itemID] = controller
 			return controller
 		}
@@ -230,7 +231,7 @@ public struct ASCollectionView<SectionID: Hashable>: UIViewControllerRepresentab
 					let cell = collectionView.dequeueReusableCell(withReuseIdentifier: self.cellReuseID, for: indexPath) as? Cell
 				else { return nil }
 				let isSelected = collectionView.indexPathsForSelectedItems?.contains(indexPath) ?? false
-				guard let hostController = self.configureHostingController(forItemID: itemID, isSelected: isSelected)
+                guard let hostController = self.configureHostingController(forItemID: itemID, isSelected: isSelected, indexPath: indexPath)
 				else { return cell }
 				cell.invalidateLayout = {
 					collectionView.collectionViewLayout.invalidateLayout()
@@ -290,10 +291,12 @@ public struct ASCollectionView<SectionID: Hashable>: UIViewControllerRepresentab
 				{ cell in
 					guard
 						let cell = cell as? Cell,
-						let itemID = cell.id
+						let itemID = cell.id,
+                        let indexPath = cv.indexPath(for: cell)
 					else { return }
 
-					self.configureHostingController(forItemID: itemID, isSelected: cell.isSelected)
+
+					self.configureHostingController(forItemID: itemID, isSelected: cell.isSelected, indexPath: indexPath)
 				}
 
 				supplementaryKinds().forEach
@@ -454,8 +457,10 @@ public struct ASCollectionView<SectionID: Hashable>: UIViewControllerRepresentab
 				let cell = collectionView.cellForItem(at: indexPath) as? Cell,
 				let itemID = cell.id
 			else { return }
+
+            parent.selectedItem?.wrappedValue = indexPath
 			updateSelectionBindings(collectionView)
-			configureHostingController(forItemID: itemID, isSelected: true)
+            configureHostingController(forItemID: itemID, isSelected: true, indexPath: indexPath)
 		}
 
 		public func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath)
@@ -465,7 +470,9 @@ public struct ASCollectionView<SectionID: Hashable>: UIViewControllerRepresentab
 				let itemID = cell.id
 			else { return }
 			updateSelectionBindings(collectionView)
-			configureHostingController(forItemID: itemID, isSelected: false)
+			configureHostingController(forItemID: itemID,
+                                       isSelected: false,
+                                       indexPath: indexPath)
 		}
 
 		func updateSelectionBindings(_ collectionView: UICollectionView)

@@ -7,7 +7,7 @@ internal protocol ASSectionDataSourceProtocol
 {
 	func getIndexPaths(withSectionIndex sectionIndex: Int) -> [IndexPath]
 	func getUniqueItemIDs<SectionID: Hashable>(withSectionID sectionID: SectionID) -> [ASCollectionViewItemUniqueID]
-	func configureHostingController(reusingController: ASHostingControllerProtocol?, forItemID itemID: ASCollectionViewItemUniqueID, isSelected: Bool) -> ASHostingControllerProtocol?
+    func configureHostingController(reusingController: ASHostingControllerProtocol?, forItemID itemID: ASCollectionViewItemUniqueID, isSelected: Bool, indexPath: IndexPath) -> ASHostingControllerProtocol?
 	func getTypeErasedData(for indexPath: IndexPath) -> Any?
 	func onAppear(_ indexPath: IndexPath)
 	func onDisappear(_ indexPath: IndexPath)
@@ -54,6 +54,7 @@ public struct CellContext
 	public var isSelected: Bool
 	public var isFirstInSection: Bool
 	public var isLastInSection: Bool
+    public var indexPath: IndexPath
 }
 
 @available(iOS 13.0, *)
@@ -70,18 +71,20 @@ internal struct ASSectionDataSource<DataCollection: RandomAccessCollection, Data
 	var dragEnabled: Bool { onDragDrop != nil }
 	var dropEnabled: Bool { onDragDrop != nil }
 
-	func cellContext(forItemID itemID: ASCollectionViewItemUniqueID, isSelected: Bool) -> CellContext
+    func cellContext(forItemID itemID: ASCollectionViewItemUniqueID, isSelected: Bool, indexPath: IndexPath) -> CellContext
 	{
 		CellContext(
 			isSelected: isSelected,
 			isFirstInSection: data.first?[keyPath: dataIDKeyPath].hashValue == itemID.itemIDHash,
-			isLastInSection: data.last?[keyPath: dataIDKeyPath].hashValue == itemID.itemIDHash)
+			isLastInSection: data.last?[keyPath: dataIDKeyPath].hashValue == itemID.itemIDHash,
+            indexPath: indexPath
+        )
 	}
 
-	func configureHostingController(reusingController: ASHostingControllerProtocol? = nil, forItemID itemID: ASCollectionViewItemUniqueID, isSelected: Bool) -> ASHostingControllerProtocol?
+    func configureHostingController(reusingController: ASHostingControllerProtocol? = nil, forItemID itemID: ASCollectionViewItemUniqueID, isSelected: Bool, indexPath: IndexPath) -> ASHostingControllerProtocol?
 	{
 		guard let item = data.first(where: { $0[keyPath: dataIDKeyPath].hashValue == itemID.itemIDHash }) else { return nil }
-		let view = content(item, cellContext(forItemID: itemID, isSelected: isSelected))
+		let view = content(item, cellContext(forItemID: itemID, isSelected: isSelected, indexPath: indexPath))
 
 		if let existingHC = reusingController as? ASHostingController<Content>
 		{
