@@ -68,7 +68,8 @@ public struct ASCollectionView<SectionID: Hashable>: UIViewControllerRepresentab
 	public var layout: Layout = .default
 	public var sections: [Section]
 	public var selectedItems: Binding<[SectionID: IndexSet]>?
-
+    public var selectedItem: Binding<IndexPath?>?
+    
 	var contentSize: Binding<CGSize?>?
 
 	var delegateInitialiser: (() -> ASCollectionViewDelegate) = ASCollectionViewDelegate.init
@@ -109,6 +110,7 @@ public struct ASCollectionView<SectionID: Hashable>: UIViewControllerRepresentab
 	@inlinable public init(selectedItems: Binding<[SectionID: IndexSet]>? = nil, selectedItem: Binding<IndexPath?>? = nil, @SectionArrayBuilder <SectionID> sectionBuilder: () -> [Section])
 	{
 		self.selectedItems = selectedItems
+        self.selectedItem = selectedItem
 		sections = sectionBuilder()
 	}
 
@@ -838,6 +840,14 @@ public class AS_CollectionViewController: UIViewController
 @available(iOS 13.0, *)
 public extension ASCollectionView
 {
+
+    func selectedItem(_ selectedItem: Binding<IndexPath?>) -> Self {
+
+        var this = self
+        this.selectedItem = selectedItem
+        return this
+    }
+
 	func layout(_ layout: Layout) -> Self
 	{
 		var this = self
